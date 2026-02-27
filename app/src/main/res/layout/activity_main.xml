@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <EditText
         android:id="@+id/editNote"
@@ -11,25 +11,46 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="top"
-        android:hint="Paste patient notes here..."
-        android:inputType="textMultiLine" />
+        android:hint="Patient notes will appear here..."
+        android:inputType="textMultiLine"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
 
     <Button
         android:id="@+id/btnSend"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="Send to PC" />
 
-    <TextView
-        android:id="@+id/logTextView"
+    <Button
+        android:id="@+id/btnToggleLog"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Hide Debug"
+        android:textSize="10sp" />
+
+    <LinearLayout
+        android:id="@+id/logContainer"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:layout_marginTop="10dp"
-        android:background="#F0F0F0"
-        android:padding="8dp"
-        android:text="System Logs:"
-        android:scrollbars="vertical"
-        android:typeface="monospace"
-        android:textSize="12sp"
-        android:textColor="#333333" />
+        android:layout_height="120dp"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#EEEEEE">
+            <TextView
+                android:id="@+id/logTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="System Logs:"
+                android:typeface="monospace"
+                android:textSize="11sp" />
+        </ScrollView>
+    </LinearLayout>
 </LinearLayout>

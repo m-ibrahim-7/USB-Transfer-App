@@ -5,16 +5,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-		android:allowBackup="true"
-		android:icon="@mipmap/ic_launcher"
-		android:label="@string/app_name"
-		android:supportsRtl="true"
-		android:theme="@style/Theme.USBTransfer">
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.USBTransfer">
         
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
+            android:exported="true"
+            android:launchMode="singleTop"> <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
