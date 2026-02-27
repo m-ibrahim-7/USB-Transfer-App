@@ -16,18 +16,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # We temporarily disable the cache to ensure no Gradle 9 "poisoning" exists
-          # cache: gradle 
 
       - name: Build with Gradle
         run: |
-          # 1. Force generate the wrapper version 8.1 specifically using the system gradle
+          # Create the wrapper using version 8.1
           gradle wrapper --gradle-version 8.1
-          
-          # 2. Fix permissions for the newly generated script
           chmod +x gradlew
           
-          # 3. Use the WRAPPER (./gradlew) ONLY. This bypasses the system 9.3 version.
+          # Use the wrapper specifically to build
           ./gradlew clean assembleDebug
 
       - name: Upload APK
