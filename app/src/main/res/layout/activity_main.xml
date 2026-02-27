@@ -1,56 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    activity_main.xml
+    File location: app/src/main/res/layout/activity_main.xml
+    Replace your existing layout with this file.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="#1e1e2e"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/editNote"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="top"
-        android:hint="Patient notes will appear here..."
-        android:inputType="textMultiLine"
-        android:background="@android:drawable/edit_text"
-        android:padding="12dp" />
-
-    <Button
-        android:id="@+id/btnSend"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Send to PC" />
-
-    <Button
-        android:id="@+id/btnToggleLog"
-        style="?android:attr/borderlessButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Hide Debug"
-        android:textSize="10sp" />
-
     <LinearLayout
-        android:id="@+id/logContainer"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:visibility="visible">
+        android:gravity="center_horizontal">
 
-        <ScrollView
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DataBridge Sender"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#cdd6f4"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Connection Status -->
+        <TextView
+            android:id="@+id/tvConnectionStatus"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#EEEEEE">
-            <TextView
-                android:id="@+id/logTextView"
+            android:layout_height="wrap_content"
+            android:text="● Waiting for PC"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#f38ba8"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Text input -->
+        <EditText
+            android:id="@+id/editNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="100dp"
+            android:gravity="top"
+            android:hint="Type or share text here…"
+            android:background="#313244"
+            android:textColor="#cdd6f4"
+            android:textColorHint="#6c7086"
+            android:padding="12dp"
+            android:inputType="textMultiLine"
+            android:layout_marginBottom="10dp" />
+
+        <!-- Send Button -->
+        <Button
+            android:id="@+id/btnSend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Send to PC"
+            android:backgroundTint="#89b4fa"
+            android:textColor="#1e1e2e"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Retry Button (hidden unless PC disconnected & text pending) -->
+        <Button
+            android:id="@+id/btnRetry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⟳  Retry Send"
+            android:backgroundTint="#fab387"
+            android:textColor="#1e1e2e"
+            android:visibility="gone"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Last Message Sent -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Last Message:"
+            android:textColor="#cdd6f4"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvLastMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:background="#313244"
+            android:textColor="#a6e3a1"
+            android:padding="10dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Toggle Debug button -->
+        <Button
+            android:id="@+id/btnToggleLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hide Debug"
+            android:backgroundTint="#585b70"
+            android:textColor="#cdd6f4"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Debug Log Container -->
+        <LinearLayout
+            android:id="@+id/logContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:text="System Logs:"
-                android:typeface="monospace"
-                android:textSize="11sp" />
-        </ScrollView>
+                android:layout_height="200dp">
+
+                <TextView
+                    android:id="@+id/logTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#181825"
+                    android:fontFamily="monospace"
+                    android:textColor="#cdd6f4"
+                    android:textSize="11sp"
+                    android:padding="8dp" />
+            </ScrollView>
+        </LinearLayout>
+
     </LinearLayout>
-</LinearLayout>
+</ScrollView>

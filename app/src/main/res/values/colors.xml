@@ -4,4 +4,6 @@
     <color name="teal_200">#03DAC5</color>
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+    <color name="status_green">#a6e3a1</color>
+    <color name="status_red">#f38ba8</color>
 </resources>
