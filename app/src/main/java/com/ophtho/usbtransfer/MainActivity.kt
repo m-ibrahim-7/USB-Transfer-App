@@ -17,17 +17,25 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // This connects the Kotlin code to your activity_main.xml layout
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         logEvent("App Started")
 
-        // Handle text shared from other apps
+        // 1. Handle Share Intent (Incoming text)
         if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-            if (sharedText != null) {
-                sendToPC(sharedText)
+            binding.editNote.setText(sharedText) // Put the text in the box
+            if (sharedText != null) sendToPC(sharedText)
+        }
+
+        // 2. Handle Manual Button Click
+        binding.btnSend.setOnClickListener {
+            val textToSend = binding.editNote.text.toString()
+            if (textToSend.isNotEmpty()) {
+                sendToPC(textToSend)
+            } else {
+                logEvent("Error: Nothing to send")
             }
         }
     }
