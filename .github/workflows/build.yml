@@ -18,16 +18,16 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
-
       - name: Build with Gradle
         run: |
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.1
-            chmod +x gradlew
-          fi
-          ./gradlew assembleDebug
+          # Force generate the wrapper to ensure we aren't using Gradle 9+
+          gradle wrapper --gradle-version 8.1
+          
+          # Give the script permission to run on the Linux server
+          chmod +x gradlew
+          
+          # Clean old failed attempts and build the APK
+          ./gradlew clean assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
