@@ -16,17 +16,18 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+          # We temporarily disable the cache to ensure no Gradle 9 "poisoning" exists
+          # cache: gradle 
 
       - name: Build with Gradle
         run: |
-          # Force generate the wrapper to ensure we aren't using Gradle 9+
+          # 1. Force generate the wrapper version 8.1 specifically using the system gradle
           gradle wrapper --gradle-version 8.1
           
-          # Give the script permission to run on the Linux server
+          # 2. Fix permissions for the newly generated script
           chmod +x gradlew
           
-          # Clean old failed attempts and build the APK
+          # 3. Use the WRAPPER (./gradlew) ONLY. This bypasses the system 9.3 version.
           ./gradlew clean assembleDebug
 
       - name: Upload APK
