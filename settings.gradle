@@ -1,0 +1,2 @@
+rootProject.name = "OphthoTransfer"
+include ':app'
