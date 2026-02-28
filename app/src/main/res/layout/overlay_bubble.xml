@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    res/layout/overlay_bubble.xml
+    ══════════════════════════════════════════════════════════════════════════
+    The floating capture bubble.  Keep it small — it must not obstruct the
+    Rhazes AI interface.  A 56dp circle is the minimum comfortable tap target.
+
+    DRAG BEHAVIOUR: touch handling in OverlayService moves the whole window.
+    The ImageButton only fires onClick when the finger did not move > ~8dp
+    (Android's default touch slop).
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <ImageButton
+        android:id="@+id/btnOverlaySend"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bubble_bg"
+        android:src="@drawable/ic_send_white"
+        android:scaleType="center"
+        android:contentDescription="Send clipboard to PC"
+        android:elevation="8dp" />
+
+</FrameLayout>
