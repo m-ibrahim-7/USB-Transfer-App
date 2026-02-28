@@ -3,7 +3,50 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#FAFAFA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp"
+        android:background="@android:drawable/edit_text">
+
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/dot_grey" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Idle — tap Start"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#424242" />
+
+        <Button
+            android:id="@+id/btnToggleService"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▶ Start Bubble"
+            android:minWidth="120dp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="4dp"
+        android:text="Manual Send / Patient Note Preview:"
+        android:textSize="12sp"
+        android:textColor="#757575" />
 
     <EditText
         android:id="@+id/editNote"
@@ -21,7 +64,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Send to PC" />
+        android:text="Send to PC"
+        android:backgroundTint="#00897B"
+        android:textColor="#FFFFFF" />
 
     <Button
         android:id="@+id/btnToggleLog"
@@ -35,7 +80,7 @@
     <LinearLayout
         android:id="@+id/logContainer"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="160dp"
         android:orientation="vertical"
         android:visibility="visible">
 
