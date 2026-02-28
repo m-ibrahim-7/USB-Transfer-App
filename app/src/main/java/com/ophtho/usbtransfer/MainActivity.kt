@@ -3,6 +3,7 @@ package com.ophtho.usbtransfer
 import android.content.*
 import android.net.Uri
 import android.os.Bundle
+import android.graphics.Color
 import android.provider.Settings
 import android.view.View
 import android.widget.Toast

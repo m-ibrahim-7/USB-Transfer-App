@@ -1,42 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    AndroidManifest.xml  —  Bridge v5
-    ══════════════════════════════════════════════════════════════════════════
-    CRITICAL CHANGES vs v4
-    ───────────────────────
-    1. FOREGROUND_SERVICE and FOREGROUND_SERVICE_DATA_SYNC REMOVED
-       These permissions caused every single crash in your log.
-       OverlayService no longer calls startForeground() so these are
-       not needed and must not be present (they caused the SecurityException
-       even when declared, on certain ROM builds).
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- REMOVED: package="com.ophtho.usbtransfer" from this line -->
 
-    2. foregroundServiceType attribute REMOVED from <service>
-       No longer applicable without startForeground().
-
-    3. Only two permissions remain:
-       • SYSTEM_ALERT_WINDOW  — required for the overlay bubble window
-       • WAKE_LOCK            — kept as optional safety net (harmless if unused)
-
-    WHAT YOU NEED TO DO
-    ────────────────────
-    Open your actual AndroidManifest.xml and make sure it matches this file
-    exactly for the <uses-permission> and <service> blocks.
-    Then rebuild and reinstall the APK.
--->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ophtho.usbtransfer">
-
-    <!-- ── The ONLY permissions this app needs ────────────────────────── -->
+    <!-- Permissions -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- ── DO NOT add these — they cause the crash: ───────────────────── -->
-    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> -->
-    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> -->
+    
+    <!-- Optional: For Android 13+ notification permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="Ophtho Bridge"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
         android:theme="@style/Theme.UsbTransfer">
 
         <activity
@@ -54,14 +31,11 @@
             </intent-filter>
         </activity>
 
-        <!--
-            NOTE: No foregroundServiceType attribute — we are a plain Service now.
-            START_STICKY still works without foreground; the OS will restart us
-            if killed, and the overlay window keeps the process alive regardless.
-        -->
+        <!-- Service -->
         <service
             android:name=".OverlayService"
             android:exported="false" />
 
     </application>
+
 </manifest>
