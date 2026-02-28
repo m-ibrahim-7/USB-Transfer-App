@@ -11,8 +11,5 @@
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryDark">@color/purple_700</item>
         <item name="colorAccent">@color/teal_200</item>
-
-        <!-- Prevent system font scaling from breaking the bubble layout -->
-        <item name="android:fontScale">1.0</item>
     </style>
 </resources>
