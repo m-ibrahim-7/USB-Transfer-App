@@ -71,7 +71,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPermissionThenStart() {
         if (Settings.canDrawOverlays(this)) {
-            startForegroundService(Intent(this, OverlayService::class.java))
+            startService(Intent(this, OverlayService::class.java))
+
         } else {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         }
