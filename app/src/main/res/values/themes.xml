@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.USBTransfer" parent="Theme.AppCompat.Light.NoActionBar">
+    <!--
+        Theme.UsbTransfer  (lowercase 'sb' — must match AndroidManifest.xml exactly)
+        ══════════════════════════════════════════════════════════════════════════
+        FIX: Was "Theme.USBTransfer" — Android resource names are case-sensitive.
+             The manifest declares android:theme="@style/Theme.UsbTransfer" so
+             this name must match exactly or the app crashes on launch.
+    -->
+    <style name="Theme.UsbTransfer" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryDark">@color/purple_700</item>
         <item name="colorAccent">@color/teal_200</item>
+
+        <!-- Prevent system font scaling from breaking the bubble layout -->
+        <item name="android:fontScale">1.0</item>
     </style>
 </resources>

@@ -23,8 +23,7 @@
     exactly for the <uses-permission> and <service> blocks.
     Then rebuild and reinstall the APK.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ophtho.usbtransfer">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ── The ONLY permissions this app needs ────────────────────────── -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
