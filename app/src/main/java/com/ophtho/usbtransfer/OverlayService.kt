@@ -12,10 +12,6 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 
-/**
- * OverlayService v6 (Stable)
- * Restores Foreground Notification to prevent OS "RemoteServiceException" crashes.
- */
 class OverlayService : Service() {
 
     companion object {
@@ -23,6 +19,11 @@ class OverlayService : Service() {
         private const val CHANNEL_ID = "bridge_service_channel"
         private const val NOTIF_ID = 101
         @Volatile var isRunning = false
+
+        const val ACTION_CLIP_SENT = "com.ophtho.usbtransfer.CLIP_SENT"
+        const val ACTION_SERVICE_ALIVE = "com.ophtho.usbtransfer.SERVICE_ALIVE"
+        const val EXTRA_PREVIEW = "extra_preview"
+        const val EXTRA_CHUNKS = "extra_chunks"
     }
 
     private var windowManager: WindowManager? = null
@@ -32,15 +33,14 @@ class OverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        // Immediate start to satisfy Android's 5-second rule
-        startForeground(NOTIF_ID, buildNotification())
+        startForeground(NOTIF_ID, buildNotification()) // Immediate call
         addOverlayBubble()
         isRunning = true
+        sendBroadcast(Intent(ACTION_SERVICE_ALIVE))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Ensures notification stays alive if service restarts
-        startForeground(NOTIF_ID, buildNotification())
+        startForeground(NOTIF_ID, buildNotification()) // Redundant safety call
         return START_STICKY
     }
 
@@ -54,22 +54,18 @@ class OverlayService : Service() {
 
     private fun addOverlayBubble() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        
         val frame = FrameLayout(this)
         val tv = TextView(this).apply {
             text = "📋"
             textSize = 24f
             gravity = Gravity.CENTER
-            val shape = GradientDrawable().apply {
+            background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.argb(220, 0, 137, 123)) // Teal
+                setColor(Color.argb(220, 0, 137, 123))
                 setStroke(3, Color.WHITE)
             }
-            background = shape
         }
-        
         frame.addView(tv, FrameLayout.LayoutParams(160, 160))
-
         val params = WindowManager.LayoutParams(
             160, 160,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -77,12 +73,9 @@ class OverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = 20
-            y = 300
+            x = 20; y = 300
         }
-
         frame.setOnClickListener { captureAndSend() }
-        
         bubbleView = frame
         windowManager?.addView(bubbleView, params)
     }
@@ -91,35 +84,34 @@ class OverlayService : Service() {
         try {
             val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-            
             if (clip.isEmpty()) {
-                Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Clipboard empty", Toast.LENGTH_SHORT).show()
                 return
             }
 
             Thread {
                 try {
                     val chunks = ClipboardTransmitter.send(clip)
+                    val intent = Intent(ACTION_CLIP_SENT).apply {
+                        putExtra(EXTRA_PREVIEW, clip.take(20))
+                        putExtra(EXTRA_CHUNKS, chunks)
+                    }
+                    sendBroadcast(intent)
                     mainHandler.post {
-                        Toast.makeText(this, "✓ Sent $chunks chunks to PC", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "✓ Sent $chunks chunks", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Transmission failed", e)
+                    Log.e(TAG, "Fail", e)
                 }
             }.start()
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Clipboard access error", e)
-        }
+        } catch (e: Exception) { Log.e(TAG, "Error", e) }
     }
 
     private fun buildNotification(): Notification {
-        val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
+        val pendingIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Ophtho Bridge Running")
-            .setContentText("Tap the floating bubble to send data")
+            .setContentTitle("Ophtho Bridge")
+            .setContentText("Bubble Active")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -127,9 +119,8 @@ class OverlayService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(CHANNEL_ID, "Bridge Service", NotificationManager.IMPORTANCE_LOW)
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(CHANNEL_ID, "Bridge", NotificationManager.IMPORTANCE_LOW)
+        getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
     }
 
     private fun removeOverlayBubble() {

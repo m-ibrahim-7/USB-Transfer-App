@@ -1,101 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/layout/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#FAFAFA">
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ophtho Bridge v6.1"
+        android:textSize="20sp"
+        android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp"
-        android:background="@android:drawable/edit_text">
+        android:layout_marginTop="8dp">
 
         <View
             android:id="@+id/statusDot"
             android:layout_width="12dp"
             android:layout_height="12dp"
-            android:layout_marginEnd="12dp"
-            android:background="@drawable/dot_grey" />
+            android:background="@android:color/darker_gray" />
 
         <TextView
             android:id="@+id/tvStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Idle — tap Start"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="#424242" />
-
-        <Button
-            android:id="@+id/btnToggleService"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="▶ Start Bubble"
-            android:minWidth="120dp" />
+            android:layout_marginStart="8dp"
+            android:text="Idle" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
+    <Button
+        android:id="@+id/btnToggleService"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="4dp"
-        android:text="Manual Send / Patient Note Preview:"
-        android:textSize="12sp"
-        android:textColor="#757575" />
+        android:text="Start Bubble" />
 
     <EditText
         android:id="@+id/editNote"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="top"
-        android:hint="Patient notes will appear here..."
-        android:inputType="textMultiLine"
-        android:background="@android:drawable/edit_text"
-        android:padding="12dp" />
+        android:layout_height="wrap_content"
+        android:hint="Manual text entry"
+        android:layout_marginTop="16dp" />
 
     <Button
         android:id="@+id/btnSend"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Send to PC"
-        android:backgroundTint="#00897B"
-        android:textColor="#FFFFFF" />
+        android:text="Send Manual Note" />
 
     <Button
         android:id="@+id/btnToggleLog"
-        style="?android:attr/borderlessButtonStyle"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Hide Debug"
-        android:textSize="10sp" />
+        android:text="Show Debug" />
 
-    <LinearLayout
+    <ScrollView
         android:id="@+id/logContainer"
         android:layout_width="match_parent"
-        android:layout_height="160dp"
-        android:orientation="vertical"
-        android:visibility="visible">
-
-        <ScrollView
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        android:background="#F0F0F0">
+        <TextView
+            android:id="@+id/logTextView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#EEEEEE">
-            <TextView
-                android:id="@+id/logTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:text="System Logs:"
-                android:typeface="monospace"
-                android:textSize="11sp" />
-        </ScrollView>
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp" />
+    </ScrollView>
+
 </LinearLayout>
