@@ -2,38 +2,49 @@ package com.ophtho.usbtransfer
 
 import android.app.*
 import android.content.*
-import android.graphics.PixelFormat
+import android.graphics.*
+import android.graphics.drawable.GradientDrawable
 import android.os.*
+import android.provider.Settings
 import android.util.Log
 import android.view.*
-import android.widget.ImageButton
+import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
 
 /**
- * OverlayService  —  The "Overlay Bubble" solution
+ * OverlayService  v5
  * ══════════════════════════════════════════════════════════════════════════════
  *
- * WHY THIS SOLVES THE ANDROID 12+ CLIPBOARD WALL
- * ─────────────────────────────────────────────────
- * Android 12+ blocks getPrimaryClip() unless the reading app is either:
- *   (a) the focused window, or
- *   (b) the default input method (keyboard).
+ * KEY CHANGE vs v4
+ * ─────────────────
+ * startForeground() has been REMOVED entirely.
  *
- * A SYSTEM_ALERT_WINDOW overlay (TYPE_APPLICATION_OVERLAY) is a real window
- * owned by this app's process.  The instant the user taps it, Android grants
- * INPUT_FOCUS to that window for the duration of the tap — satisfying condition
- * (a) legally, without any hacks.
+ * WHY IT'S SAFE TO REMOVE IT
+ * ────────────────────────────
+ * A foreground service requires android.permission.FOREGROUND_SERVICE in the
+ * manifest.  If that line is missing or the APK was built without it, the
+ * service crashes the instant onCreate() calls startForeground() — exactly
+ * what the crash log shows (all 15 crashes are identical, line 62).
  *
- * WORKFLOW
- * ─────────
- *  1. User reads a note in Rhazes AI and taps "Copy".
- *  2. User taps the small floating bubble (always visible on top of Rhazes AI).
- *  3. The tap gives our window INPUT_FOCUS for ~1 second.
- *  4. We immediately call getPrimaryClip() — OS grants it.
- *  5. We transmit via Logcat and release focus.
- *  6. User never leaves Rhazes AI.
+ * More importantly: we don't NEED a foreground service here.
+ * The overlay window itself (TYPE_APPLICATION_OVERLAY) keeps the process
+ * alive as long as it's visible.  The OS will not kill a process that owns
+ * a visible system window.  startForeground() + notification was only needed
+ * for the old polling-service approach (v2).  The bubble architecture doesn't
+ * poll anything — it only acts when tapped.
  *
- * NO POLLING.  NO WAKE LOCK.  NO BATTERY DRAMA.
+ * The persistent notification is also removed (it was only there to satisfy
+ * the foreground service requirement).  Cleaner for the doctor.
+ *
+ * ALSO CONFIRMED WORKING FROM THE CRASH LOG
+ * ───────────────────────────────────────────
+ * At 18:02:57 in the crash log we can see:
+ *   SESSION_START|MM6GADZE|CHUNKS=1|ENC=PLAIN
+ *   CHUNK|MM6GADZE|1/1|hello
+ *   SESSION_END|MM6GADZE
+ * The transmission chain (clipboard → logcat → PC) is fully working.
+ * This fix is the only remaining issue.
  */
 class OverlayService : Service() {
 
@@ -46,27 +57,28 @@ class OverlayService : Service() {
         @Volatile var isRunning = false
             private set
 
-        private const val CHANNEL_ID = "overlay_channel"
-        private const val NOTIF_ID   = 2001
-        private const val TAG        = "OverlayService"
+        private const val TAG          = "OverlayService"
+        private const val FOCUS_DELAY  = 120L   // ms — focus transfer grace period
+        private const val DRAG_SLOP    = 10f    // px — tap vs drag threshold
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var windowManager: WindowManager? = null
-    private var overlayView: View?            = null
+    private var bubbleView: View? = null
+    private var bubbleParams: WindowManager.LayoutParams? = null
 
     // ── Lifecycle ──────────────────────────────────────────────────────────
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification())
-        addOverlayBubble()
+        // NO startForeground() — plain Service is sufficient for an overlay window
         isRunning = true
-        Log.d(TAG, "OverlayService started")
+        addOverlayBubble()
+        Log.d(TAG, "OverlayService v5 started (no foreground service required)")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        START_STICKY   // OS restarts if killed; bubble reappears automatically
+        START_STICKY
 
     override fun onDestroy() {
         removeOverlayBubble()
@@ -77,134 +89,189 @@ class OverlayService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    // ── Overlay creation ───────────────────────────────────────────────────
+    // ── Build bubble in code — zero XML / resource dependencies ──────────
 
     private fun addOverlayBubble() {
+        if (!Settings.canDrawOverlays(this)) {
+            Log.e(TAG, "SYSTEM_ALERT_WINDOW not granted — stopping")
+            Toast.makeText(
+                this,
+                "Permission needed: Settings → Apps → Ophtho Bridge → Display over other apps → ON",
+                Toast.LENGTH_LONG
+            ).show()
+            stopSelf()
+            return
+        }
+
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        overlayView = LayoutInflater.from(this)
-            .inflate(R.layout.overlay_bubble, null)
+        val dp    = resources.displayMetrics.density
+        val sizePx = (62 * dp).toInt()
+
+        // Circular teal button drawn entirely in code
+        val circle = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.argb(220, 0, 137, 123))          // 86% teal-700
+            setStroke((2 * dp).toInt(), Color.argb(160, 255, 255, 255))
+        }
+
+        val label = TextView(this).apply {
+            text             = "📋"
+            textSize         = 26f
+            gravity          = Gravity.CENTER
+            background       = circle
+            layoutParams     = FrameLayout.LayoutParams(sizePx, sizePx)
+            contentDescription = "Send clipboard to PC"
+        }
+
+        val frame = FrameLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(sizePx, sizePx)
+            addView(label)
+        }
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            sizePx, sizePx,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            // NOT_FOCUSABLE is OFF: we NEED focus so Android grants clipboard access
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = 16   // dp offset from right edge
-            y = 200  // dp offset from top — user can drag to reposition
+            x = (12 * dp).toInt()
+            y = (180 * dp).toInt()
         }
 
-        overlayView!!.let { view ->
-            // ── Tap: read clipboard (legal because we now have window focus) ──
-            view.findViewById<ImageButton>(R.id.btnOverlaySend).setOnClickListener {
-                captureAndSend()
-            }
+        // Touch: small movement = tap → send; large movement = drag → reposition
+        var downX = 0f; var downY = 0f; var dragging = false
 
-            // ── Drag: let the user reposition the bubble ─────────────────────
-            var dX = 0f; var dY = 0f
-            view.setOnTouchListener { v, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        dX = params.x - event.rawX
-                        dY = params.y - event.rawY
-                        false  // let click events through
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        params.x = (event.rawX + dX).toInt()
-                        params.y = (event.rawY + dY).toInt()
-                        windowManager!!.updateViewLayout(view, params)
-                        true
-                    }
-                    else -> false
+        frame.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX; downY = event.rawY; dragging = false; false
                 }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!dragging &&
+                        (Math.abs(event.rawX - downX) > DRAG_SLOP ||
+                         Math.abs(event.rawY - downY) > DRAG_SLOP)) {
+                        dragging = true
+                    }
+                    if (dragging) {
+                        params.x = (params.x - (event.rawX - downX)).toInt()
+                        params.y = (params.y + (event.rawY - downY)).toInt()
+                        downX = event.rawX; downY = event.rawY
+                        try { windowManager?.updateViewLayout(frame, params) }
+                        catch (e: Exception) { /* layout race, ignore */ }
+                        true
+                    } else false
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!dragging) {
+                        // Brief delay lets the OS complete the focus transfer
+                        mainHandler.postDelayed({ captureAndSend() }, FOCUS_DELAY)
+                    }
+                    false
+                }
+                else -> false
             }
         }
 
-        windowManager!!.addView(overlayView, params)
+        bubbleView   = frame
+        bubbleParams = params
+
+        try {
+            windowManager!!.addView(frame, params)
+            Log.d(TAG, "Bubble added to WindowManager at y=${params.y}")
+        } catch (e: WindowManager.BadTokenException) {
+            Log.e(TAG, "BadTokenException on addView: ${e.message}")
+            Toast.makeText(this,
+                "Overlay permission problem — disable and re-enable in Settings",
+                Toast.LENGTH_LONG).show()
+            isRunning = false
+            stopSelf()
+        } catch (e: Exception) {
+            Log.e(TAG, "addView failed: ${e.message}")
+            stopSelf()
+        }
     }
 
     private fun removeOverlayBubble() {
-        overlayView?.let { windowManager?.removeView(it) }
-        overlayView = null
+        try { bubbleView?.let { windowManager?.removeView(it) } }
+        catch (e: Exception) { /* already removed */ }
+        bubbleView = null
     }
 
-    // ── Core: focus-gated clipboard read ──────────────────────────────────
+    // ── Clipboard capture — called 120 ms after tap ────────────────────────
 
-    /**
-     * Called on the main thread immediately after the tap (we still hold focus).
-     * On Android 12+, getPrimaryClip() is only granted to the focused window.
-     * Since the user just tapped OUR overlay, we ARE the focused window right now.
-     */
     private fun captureAndSend() {
-        val cm   = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = cm.primaryClip
+        try {
+            val cm   = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = cm.primaryClip
 
-        if (clip == null || clip.itemCount == 0) {
-            Toast.makeText(this, "Clipboard is empty — copy first!", Toast.LENGTH_SHORT).show()
-            Log.w(TAG, "Clipboard empty at tap time")
-            return
-        }
-
-        val text = clip.getItemAt(0)
-            .coerceToText(this)
-            .toString()
-            .trim()
-
-        if (text.isEmpty()) {
-            Toast.makeText(this, "Nothing on clipboard", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Transmit on a background thread so the UI tap response is instant
-        Thread {
-            val chunks = ClipboardTransmitter.send(text)
-            val preview = text.take(40).replace('\n', ' ')
-
-            // Notify MainActivity
-            sendBroadcast(
-                Intent(ACTION_CLIP_SENT).setPackage(packageName)
-                    .putExtra(EXTRA_PREVIEW, preview)
-                    .putExtra(EXTRA_CHUNKS, chunks)
-            )
-
-            // Brief visual feedback on the bubble itself
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(this, "✓ Sent to PC", Toast.LENGTH_SHORT).show()
+            if (clip == null || clip.itemCount == 0) {
+                Toast.makeText(this, "Clipboard empty — Copy something first", Toast.LENGTH_SHORT).show()
+                Log.w(TAG, "Clipboard empty at tap time")
+                return
             }
 
-            Log.d(TAG, "Sent: $chunks chunk(s) — \"$preview\"")
-        }.start()
+            val text = clip.getItemAt(0).coerceToText(this).toString().trim()
+
+            if (text.isEmpty()) {
+                Toast.makeText(this, "Clipboard text is blank", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            Log.d(TAG, "Clipboard captured: ${text.length} chars")
+            setBubbleState(sending = true)
+
+            Thread {
+                try {
+                    val chunks  = ClipboardTransmitter.send(text)
+                    val preview = text.take(40).replace('\n', ' ')
+
+                    sendBroadcast(
+                        Intent(ACTION_CLIP_SENT).setPackage(packageName)
+                            .putExtra(EXTRA_PREVIEW, preview)
+                            .putExtra(EXTRA_CHUNKS, chunks)
+                    )
+
+                    mainHandler.post {
+                        Toast.makeText(this, "✓ Sent to PC ($chunks chunk(s))", Toast.LENGTH_SHORT).show()
+                        setBubbleState(sending = false)
+                    }
+
+                    Log.d(TAG, "Transmitted $chunks chunk(s): \"$preview\"")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Transmission error: ${e.message}")
+                    mainHandler.post {
+                        Toast.makeText(this, "Send error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        setBubbleState(sending = false)
+                    }
+                }
+            }.start()
+
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException on clipboard: ${e.message}")
+            Toast.makeText(this,
+                "Clipboard denied — tap bubble again immediately after Copy",
+                Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error: ${e.message}")
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    // ── Notification ───────────────────────────────────────────────────────
+    // ── Visual feedback ────────────────────────────────────────────────────
 
-    private fun buildNotification(): Notification {
-        val tapIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Ophtho Bridge — Bubble Active")
-            .setContentText("Tap the bubble after copying a note")
-            .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentIntent(tapIntent)
-            .setOngoing(true)
-            .build()
-    }
-
-    private fun createNotificationChannel() {
-        NotificationChannel(
-            CHANNEL_ID,
-            "Ophtho Bridge Overlay",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Keeps the floating capture bubble alive"
-            getSystemService(NotificationManager::class.java).createNotificationChannel(this)
+    private fun setBubbleState(sending: Boolean) {
+        (bubbleView as? FrameLayout)?.let { frame ->
+            val tv  = frame.getChildAt(0) as? TextView ?: return
+            val bg  = tv.background as? GradientDrawable ?: return
+            tv.text = if (sending) "⏳" else "📋"
+            bg.setColor(if (sending)
+                Color.argb(220, 255, 143, 0)   // amber while sending
+            else
+                Color.argb(220, 0, 137, 123))  // teal when idle
         }
     }
 }
