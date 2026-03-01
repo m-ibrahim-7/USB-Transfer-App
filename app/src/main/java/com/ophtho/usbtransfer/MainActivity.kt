@@ -16,6 +16,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.ophtho.usbtransfer.databinding.ActivityMainBinding
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -42,7 +45,6 @@ class MainActivity : AppCompatActivity() {
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // Check if permission was granted after returning from settings
         if (Settings.canDrawOverlays(this)) {
             logEvent("✓ Overlay permission granted")
             startService(Intent(this, OverlayService::class.java))
@@ -120,17 +122,43 @@ class MainActivity : AppCompatActivity() {
         binding.btnClearLog.setOnClickListener {
             binding.logTextView.text = ""
         }
+
+        // NEW: Test USB tethering button
+        binding.btnPoc.setOnClickListener {
+            sendPoc()  // uses default IP and port
+        }
+    }
+
+    // NEW: USB tethering PoC function
+    fun sendPoc(ip: String = "192.168.42.129", port: Int = 9000) {
+        Thread {
+            try {
+                val socket = Socket()
+                socket.connect(InetSocketAddress(ip, port), 2000)
+                val output = socket.getOutputStream()
+                output.write("CONNECTION_SUCCESSFUL_DR".toByteArray())
+                output.flush()
+                socket.close()
+                runOnUiThread {
+                    Toast.makeText(this, "POC sent successfully", Toast.LENGTH_SHORT).show()
+                    logEvent("✓ POC sent to $ip:$port")
+                }
+            } catch (e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this, "POC failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    logEvent("❌ POC failed: ${e.message}")
+                }
+            }
+        }.start()
     }
 
     private fun checkAllPermissions() {
         val missingPermissions = mutableListOf<String>()
         
-        // Check overlay permission
         if (!Settings.canDrawOverlays(this)) {
             missingPermissions.add("Draw over other apps")
         }
         
-        // Check notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
                 != PackageManager.PERMISSION_GRANTED) {
@@ -180,13 +208,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAllPermissionsAndStart() {
-        // Check overlay permission first
         if (!Settings.canDrawOverlays(this)) {
             showOverlayPermissionDialog()
             return
         }
         
-        // Then check notification permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
                 != PackageManager.PERMISSION_GRANTED) {
@@ -195,7 +221,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        // All permissions granted, start service
         startService(Intent(this, OverlayService::class.java))
         binding.root.postDelayed({ syncServiceUI() }, 100)
     }
@@ -221,7 +246,6 @@ class MainActivity : AppCompatActivity() {
     private fun onDataSent(preview: String, chunks: Int) {
         pulseStatusDot()
         
-        // Flash the header
         val originalText = binding.tvTitle.text
         binding.tvTitle.text = "✓ Sent: $preview"
         binding.tvTitle.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
@@ -230,7 +254,6 @@ class MainActivity : AppCompatActivity() {
             binding.tvTitle.setTextColor(ContextCompat.getColor(this, android.R.color.black))
         }, 2000)
         
-        // Add to log
         logEvent("📤 Bubble sent: $chunks chunks ($preview)")
     }
 
