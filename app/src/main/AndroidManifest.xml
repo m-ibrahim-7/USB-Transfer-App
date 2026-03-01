@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permissions -->
+    <!-- Core permissions -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     
-    <!-- Optional: For Android 13+ notification permission -->
+    <!-- Android 13+ notification permission -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -12,7 +13,6 @@
         android:label="Ophtho Bridge"
         android:supportsRtl="true"
         android:theme="@style/Theme.UsbTransfer">
-        <!-- REMOVED: android:icon and android:roundIcon -->
 
         <activity
             android:name=".MainActivity"
@@ -29,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Service -->
         <service
             android:name=".OverlayService"
             android:exported="false" />
