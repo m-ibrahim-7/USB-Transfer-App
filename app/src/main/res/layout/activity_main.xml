@@ -42,7 +42,6 @@
         android:layout_marginTop="16dp"
         android:text="Start Bubble" />
 
-    <!-- FIXED: Expandable EditText with initial 3 rows -->
     <EditText
         android:id="@+id/editNote"
         android:layout_width="match_parent"
@@ -87,6 +86,14 @@
             android:layout_marginStart="4dp"
             android:text="Clear Log" />
     </LinearLayout>
+
+    <!-- NEW: Test USB Tethering button -->
+    <Button
+        android:id="@+id/btnPoc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Test USB Tethering" />
 
     <ScrollView
         android:id="@+id/logContainer"
