@@ -27,6 +27,12 @@ class OverlayService : Service() {
         const val EXTRA_PREVIEW = "extra_preview"
         const val EXTRA_CHUNKS = "extra_chunks"
         const val EXTRA_TIMESTAMP = "extra_timestamp"
+        
+        // Default bubble color - store as constant
+        private val DEFAULT_BUBBLE_COLOR = Color.argb(230, 0, 137, 123)
+        private val SUCCESS_COLOR = Color.argb(230, 76, 175, 80)
+        private val ERROR_COLOR = Color.argb(230, 244, 67, 54)
+        private val WARNING_COLOR = Color.argb(230, 255, 152, 0)
     }
 
     private var windowManager: WindowManager? = null
@@ -87,26 +93,22 @@ class OverlayService : Service() {
         
         val frame = FrameLayout(this)
         
-        // Create a more prominent bubble with shadow and better styling
         tvBubble = TextView(this).apply {
             text = "📋"
-            textSize = 32f  // Larger text
+            textSize = 32f
             gravity = Gravity.CENTER
             
-            // Enhanced background with shadow
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.argb(230, 0, 137, 123))  // More opaque
-                setStroke(4, Color.WHITE)  // Thicker border
+                setColor(DEFAULT_BUBBLE_COLOR)
+                setStroke(4, Color.WHITE)
             }
             
-            // Add elevation for shadow (Android 5+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 elevation = 8f
             }
         }
         
-        // Larger bubble size (200x200 instead of 160x160)
         val bubbleSize = 200
         frame.addView(tvBubble, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
         
@@ -157,7 +159,7 @@ class OverlayService : Service() {
         bubbleView = frame
         windowManager?.addView(bubbleView, params)
         
-        // Add a subtle entrance animation
+        // Entrance animation
         tvBubble?.alpha = 0f
         tvBubble?.animate()
             ?.alpha(1f)
@@ -216,38 +218,38 @@ class OverlayService : Service() {
 
     private fun showFeedback(emoji: String, message: String, isError: Boolean) {
         mainHandler.post {
-            // Animate bubble
-            tvBubble?.apply {
-                val originalText = this.text.toString()
-                val originalColor = (background as? GradientDrawable)?.color ?: Color.argb(230, 0, 137, 123)
-                
-                // Change bubble
-                this.text = emoji
-                (background as? GradientDrawable)?.setColor(
-                    if (isError) Color.argb(230, 244, 67, 54) // Red
-                    else Color.argb(230, 76, 175, 80) // Green
-                )
-                
-                // Pulsing animation
-                this.animate()
-                    .scaleX(1.3f)
-                    .scaleY(1.3f)
-                    .setDuration(200)
-                    .withEndAction {
-                        this.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(200)
-                            .withEndAction {
-                                mainHandler.postDelayed({
-                                    this.text = originalText
-                                    (background as? GradientDrawable)?.setColor(originalColor)
-                                }, 1500)
-                            }
-                            .start()
-                    }
-                    .start()
-            }
+            // Store original values
+            val originalText = tvBubble?.text.toString()
+            
+            // Change bubble
+            tvBubble?.text = emoji
+            (tvBubble?.background as? GradientDrawable)?.setColor(
+                when {
+                    isError -> ERROR_COLOR
+                    emoji == "⏳" -> WARNING_COLOR
+                    else -> SUCCESS_COLOR
+                }
+            )
+            
+            // Pulsing animation
+            tvBubble?.animate()
+                ?.scaleX(1.3f)
+                ?.scaleY(1.3f)
+                ?.setDuration(200)
+                ?.withEndAction {
+                    tvBubble?.animate()
+                        ?.scaleX(1.0f)
+                        ?.scaleY(1.0f)
+                        ?.setDuration(200)
+                        ?.withEndAction {
+                            mainHandler.postDelayed({
+                                tvBubble?.text = originalText
+                                (tvBubble?.background as? GradientDrawable)?.setColor(DEFAULT_BUBBLE_COLOR)
+                            }, 1500)
+                        }
+                        ?.start()
+                }
+                ?.start()
             
             // Show notification
             try {
@@ -269,7 +271,6 @@ class OverlayService : Service() {
     private fun removeOverlayBubble() {
         try {
             bubbleView?.let { 
-                // Fade out animation
                 tvBubble?.animate()
                     ?.alpha(0f)
                     ?.scaleX(0.5f)
