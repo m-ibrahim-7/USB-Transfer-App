@@ -2,7 +2,9 @@ name: Android CI Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: 
+      - main
+      - "**"  # This wildcard tells GitHub to build EVERY branch you create
 
 jobs:
   build:
