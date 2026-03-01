@@ -19,7 +19,6 @@ class OverlayService : Service() {
     companion object {
         private const val TAG = "OverlayService"
         private const val CHANNEL_ID = "bubble_feedback_channel"
-        private const val NOTIF_ID = 1001
         @Volatile var isRunning = false
 
         const val ACTION_CLIP_SENT = "com.ophtho.usbtransfer.CLIP_SENT"
@@ -28,7 +27,7 @@ class OverlayService : Service() {
         const val EXTRA_CHUNKS = "extra_chunks"
         const val EXTRA_TIMESTAMP = "extra_timestamp"
         
-        // Default bubble color - store as constant
+        // Define colors as constants
         private val DEFAULT_BUBBLE_COLOR = Color.argb(230, 0, 137, 123)
         private val SUCCESS_COLOR = Color.argb(230, 76, 175, 80)
         private val ERROR_COLOR = Color.argb(230, 244, 67, 54)
@@ -41,6 +40,10 @@ class OverlayService : Service() {
     private var tvBubble: TextView? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var notificationManager: NotificationManager? = null
+    
+    // Store original state
+    private var originalText: String = "📋"
+    private var originalColor: Int = DEFAULT_BUBBLE_COLOR
     
     // For drag handling
     private var initialX = 0
@@ -109,14 +112,17 @@ class OverlayService : Service() {
             }
         }
         
+        // Store original values
+        originalText = "📋"
+        originalColor = DEFAULT_BUBBLE_COLOR
+        
         val bubbleSize = 200
         frame.addView(tvBubble, FrameLayout.LayoutParams(bubbleSize, bubbleSize))
         
         params = WindowManager.LayoutParams(
             bubbleSize, bubbleSize,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -218,38 +224,45 @@ class OverlayService : Service() {
 
     private fun showFeedback(emoji: String, message: String, isError: Boolean) {
         mainHandler.post {
-            // Store original values
-            val originalText = tvBubble?.text.toString()
+            // Get current views
+            val bubble = tvBubble ?: return@post
+            val background = bubble.background as? GradientDrawable ?: return@post
             
-            // Change bubble
-            tvBubble?.text = emoji
-            (tvBubble?.background as? GradientDrawable)?.setColor(
-                when {
-                    isError -> ERROR_COLOR
-                    emoji == "⏳" -> WARNING_COLOR
-                    else -> SUCCESS_COLOR
-                }
-            )
+            // Store current state for restoration
+            val currentText = bubble.text.toString()
+            val currentColor = originalColor // Use stored original, not trying to get from drawable
+            
+            // Determine feedback color
+            val feedbackColor = when {
+                isError -> ERROR_COLOR
+                emoji == "⏳" -> WARNING_COLOR
+                else -> SUCCESS_COLOR
+            }
+            
+            // Update bubble
+            bubble.text = emoji
+            background.setColor(feedbackColor)
             
             // Pulsing animation
-            tvBubble?.animate()
-                ?.scaleX(1.3f)
-                ?.scaleY(1.3f)
-                ?.setDuration(200)
-                ?.withEndAction {
-                    tvBubble?.animate()
-                        ?.scaleX(1.0f)
-                        ?.scaleY(1.0f)
-                        ?.setDuration(200)
-                        ?.withEndAction {
+            bubble.animate()
+                .scaleX(1.3f)
+                .scaleY(1.3f)
+                .setDuration(200)
+                .withEndAction {
+                    bubble.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(200)
+                        .withEndAction {
+                            // Restore after delay
                             mainHandler.postDelayed({
-                                tvBubble?.text = originalText
-                                (tvBubble?.background as? GradientDrawable)?.setColor(DEFAULT_BUBBLE_COLOR)
+                                bubble.text = originalText
+                                background.setColor(originalColor)
                             }, 1500)
                         }
-                        ?.start()
+                        .start()
                 }
-                ?.start()
+                .start()
             
             // Show notification
             try {
