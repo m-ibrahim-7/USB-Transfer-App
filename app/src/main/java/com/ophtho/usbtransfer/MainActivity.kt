@@ -23,6 +23,16 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    // ── Broadcast constants (inlined to avoid compiler resolution issues) ──────
+    // These mirror the values in OverlayService companion object exactly.
+    private companion object {
+        const val ACTION_CLIP_SENT    = "com.ophtho.usbtransfer.CLIP_SENT"
+        const val ACTION_SERVICE_ALIVE = "com.ophtho.usbtransfer.SERVICE_ALIVE"
+        const val EXTRA_PREVIEW       = "extra_preview"
+        const val EXTRA_CHUNKS        = "extra_chunks"
+        const val EXTRA_TIMESTAMP     = "extra_timestamp"
+    }
+
     private lateinit var binding: ActivityMainBinding
     private var isLogVisible = false
     private var lastSendTime = 0L
@@ -75,16 +85,16 @@ class MainActivity : AppCompatActivity() {
     private val serviceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                OverlayService.ACTION_CLIP_SENT -> {
-                    val preview   = intent.getStringExtra(OverlayService.EXTRA_PREVIEW) ?: ""
-                    val chunks    = intent.getIntExtra(OverlayService.EXTRA_CHUNKS, 1)
-                    val timestamp = intent.getLongExtra(OverlayService.EXTRA_TIMESTAMP, 0)
+                ACTION_CLIP_SENT -> {
+                    val preview   = intent.getStringExtra(EXTRA_PREVIEW) ?: ""
+                    val chunks    = intent.getIntExtra(EXTRA_CHUNKS, 1)
+                    val timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, 0)
                     if (timestamp > lastSendTime) {
                         lastSendTime = timestamp
                         onDataSent(preview, chunks)
                     }
                 }
-                OverlayService.ACTION_SERVICE_ALIVE -> {
+                ACTION_SERVICE_ALIVE -> {
                     runOnUiThread { syncServiceUI() }
                 }
             }
@@ -98,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Apply default PC IP to field and transmitter
+        // Apply default PC IP to transmitter
         binding.editPcIp.setText(ClipboardTransmitter.pcIp)
 
         registerServiceReceiver()
@@ -136,7 +146,6 @@ class MainActivity : AppCompatActivity() {
         mainHandler.removeCallbacks(heartbeatRunnable)
     }
 
-    /** Updates the status dot colour based on TCP reachability (NOT service running state). */
     private fun updateConnectionDot(reachable: Boolean) {
         val color = if (reachable) {
             ContextCompat.getColor(this, android.R.color.holo_green_dark)
@@ -189,7 +198,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Read PC IP field and push to ClipboardTransmitter. */
     private fun applyPcIpFromField() {
         val ip = binding.editPcIp.text.toString().trim()
         if (ip.isNotEmpty()) {
@@ -289,7 +297,6 @@ class MainActivity : AppCompatActivity() {
     private fun syncServiceUI() {
         val running = OverlayService.isRunning
         binding.btnToggleService.text = if (running) "Stop Bubble" else "Start Bubble"
-        // tvStatus / statusDot colour is now owned by heartbeat; only override text when needed
         if (!running && !heartbeatRunning) {
             binding.tvStatus.text = "Idle"
             binding.statusDot.setBackgroundColor(
@@ -305,8 +312,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun registerServiceReceiver() {
         val filter = IntentFilter().apply {
-            addAction(OverlayService.ACTION_CLIP_SENT)
-            addAction(OverlayService.ACTION_SERVICE_ALIVE)
+            addAction(ACTION_CLIP_SENT)
+            addAction(ACTION_SERVICE_ALIVE)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(serviceReceiver, filter, RECEIVER_NOT_EXPORTED)
