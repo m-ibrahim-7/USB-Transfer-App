@@ -2,7 +2,7 @@ name: Android CI Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "claude-tether-project" ] # Add your new branch here
 
 jobs:
   build:
